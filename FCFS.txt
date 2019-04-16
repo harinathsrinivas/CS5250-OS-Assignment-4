@@ -1,0 +1,4 @@
+(0, 1)
+(7, 2)
+(16, 0)
+average waiting time 0.00 
