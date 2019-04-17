@@ -136,12 +136,12 @@ def SRTF_scheduling(process_list):
    proc_position = 0
    while completed_proc < tot_num_processes:
        process_queue,proc_position = get_proc(cur_time, process_queue,proc_position,process_list_copy)
-       print(process_queue)
+       #print(process_queue)
        while len(process_queue) > 0:
            process_queue.sort(key= lambda x: x.burst_time)
-           print(process_queue)
+           #print(process_queue)
            process = process_queue[0]
-           print("Scehduling ",process_queue[0].id)
+           #print("Scehduling ",process_queue[0].id)
            if prev_proc == None:
                prev_proc = process
                schedule.append((cur_time, process.id))
