@@ -10,6 +10,7 @@ Output files:
    SJF.txt
 '''
 import sys
+import copy
 
 input_file = 'input.txt'
 
@@ -20,8 +21,7 @@ class Process:
        self.arrive_time = arrive_time
        self.burst_time = burst_time
        self.waiting_time = 0
-       self.lastSchedule_time = 0
-       self.remaining_time = burst_time
+       self.lastSchedule_time = arrive_time
    #for printing purpose
    def __repr__(self):
        return ('[id %d : arrival_time %d,  burst_time %d]'%(self.id, self.arrive_time, self.burst_time))
@@ -68,17 +68,17 @@ def get_proc(cur_time, process_queue,proc_position,process_list):
 #Output_2 : Average Waiting Time
 def RR_scheduling(process_list, time_quantum ):
    #print(process_list)
-   tot_num_processes=len(process_list)
+   process_list_copy = copy.deepcopy(process_list)
+   tot_num_processes=len(process_list_copy)
    #print("tot proc", tot_num_processes)
    cur_time = 0
-   proc_seen = set()
    completed_proc=0
    prev_proc=None
    schedule = []
    process_queue = []
    proc_position = 0
    while completed_proc < tot_num_processes:
-       process_queue,proc_position = get_proc(cur_time, process_queue,proc_position,process_list)
+       process_queue,proc_position = get_proc(cur_time, process_queue,proc_position,process_list_copy)
        #print("Initial Queue",process_queue)
        while len(process_queue) > 0:
            # Always take the first process from the queue
@@ -92,45 +92,84 @@ def RR_scheduling(process_list, time_quantum ):
                prev_proc = process
 
            # Waiting time for each process
-           if (process not in proc_seen):
-               #print("proc ", process, "not in set")
-               proc_seen.add(process)
-               process.waiting_time = cur_time - process.arrive_time
-           else:
-               process.waiting_time += cur_time - process.lastSchedule_time
+           process.waiting_time += cur_time - process.lastSchedule_time
 
-           # Run the process for time quoantum or process remaining time
-           if process.remaining_time <= time_quantum:
-               cur_time += process.remaining_time
+           # Run the process for time quoantum or process burst time
+           if process.burst_time <= time_quantum:
+               cur_time += process.burst_time
                process.lastSchedule_time = cur_time
-               process.remaining_time = 0
+               process.burst_time = 0
                #print("cur_time",cur_time,"proc", process.id, " doneeeeeeeeeeeeeeeeeeeeeee after wait time ", process.waiting_time)
                process_queue.remove(process)
-               process_queue, proc_position = get_proc(cur_time, process_queue, proc_position, process_list)
+               process_queue, proc_position = get_proc(cur_time, process_queue, proc_position, process_list_copy)
                completed_proc += 1
                if(completed_proc == tot_num_processes):
                    break
-           elif process.remaining_time > time_quantum:
+           elif process.burst_time > time_quantum:
                cur_time += time_quantum
                process.lastSchedule_time = cur_time
-               process.remaining_time -= time_quantum
+               process.burst_time -= time_quantum
                #print("cur_time",cur_time,"proc", process.id, " executed for ",time_quantum,"after wait time ", process.waiting_time)
-               process_queue, proc_position = get_proc(cur_time, process_queue, proc_position, process_list)
+               process_queue, proc_position = get_proc(cur_time, process_queue, proc_position, process_list_copy)
                process_queue.append(process_queue.pop(0))
+
        cur_time += 1
    #print(schedule)
-
    # Calculating avg waiting time
    tot_wait = 0
-   for process in process_list:
+   for process in process_list_copy:
        tot_wait += process.waiting_time
    avg_wait_time = tot_wait / tot_num_processes
    return schedule, avg_wait_time
-
-   return (["to be completed, scheduling process_list on round robin policy with time_quantum"], 0.0)
+   #return (["to be completed, scheduling process_list on round robin policy with time_quantum"], 0.0)
 
 def SRTF_scheduling(process_list):
-   return (["to be completed, scheduling process_list on SRTF, using process.burst_time to calculate the remaining time of the current process "], 0.0)
+   process_list_copy = copy.deepcopy(process_list)
+   tot_num_processes = len(process_list_copy)
+   # print("tot proc", tot_num_processes)
+   cur_time = 0
+   proc_seen = set()
+   completed_proc = 0
+   prev_proc = None
+   schedule = []
+   process_queue = []
+   proc_position = 0
+   while completed_proc < tot_num_processes:
+       process_queue,proc_position = get_proc(cur_time, process_queue,proc_position,process_list_copy)
+       print(process_queue)
+       while len(process_queue) > 0:
+           process_queue.sort(key= lambda x: x.burst_time)
+           print(process_queue)
+           process = process_queue[0]
+           print("Scehduling ",process_queue[0].id)
+           if prev_proc == None:
+               prev_proc = process
+               schedule.append((cur_time, process.id))
+           elif prev_proc != process:
+               schedule.append((cur_time, process.id))
+               prev_proc = process
+
+           process.waiting_time += cur_time - process.lastSchedule_time
+           # Run the proc for 1 time unit
+           process.burst_time -= 1
+           cur_time += 1
+           # Get new list of proc available
+           process_queue, proc_position = get_proc(cur_time, process_queue, proc_position, process_list_copy)
+
+           process.lastSchedule_time = cur_time
+           # Increment count if process completes
+           if process.burst_time == 0:
+               process_queue.remove(process)
+               completed_proc += 1
+       cur_time += 1
+   #print(schedule)
+   # Calculating avg waiting time
+   tot_wait = 0
+   for process in process_list_copy:
+       tot_wait += process.waiting_time
+   avg_wait_time = tot_wait / tot_num_processes
+   return schedule, avg_wait_time
+   #return (["to be completed, scheduling process_list on SRTF, using process.burst_time to calculate the remaining time of the current process "], 0.0)
 
 def SJF_scheduling(process_list, alpha):
    return (["to be completed, scheduling SJF without using information from process.burst_time"],0.0)
