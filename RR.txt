@@ -1,2 +1,6 @@
-to be completed, scheduling process_list on round robin policy with time_quantum
-average waiting time 0.00 
+(0, 0)
+(2, 1)
+(4, 2)
+(6, 1)
+(8, 2)
+average waiting time 1.67 

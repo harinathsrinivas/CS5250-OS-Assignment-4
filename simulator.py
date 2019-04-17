@@ -92,10 +92,7 @@ def RR_scheduling(process_list, time_quantum ):
            if prev_proc == None:
                prev_proc = process
                schedule.append((cur_time, process.id))
-           #elif prev_proc == process:
-               #print("Same proc no writing")
-           else:
-               #print("Diff proc writing")
+           elif prev_proc != process:
                schedule.append((cur_time, process.id))
                prev_proc = process
 
@@ -145,6 +142,14 @@ def RR_scheduling(process_list, time_quantum ):
                process_queue, proc_position = get_proc(cur_time, process_queue, proc_position, process_list)
                process_queue.append(process_queue.pop(0))
        cur_time += 1
+   print(schedule)
+
+   # Calculating avg waiting time
+   tot_wait = 0
+   for process in process_list:
+       tot_wait += process.waiting_time
+   avg_wait_time = tot_wait / tot_num_processes
+   return schedule, avg_wait_time
 
    return (["to be completed, scheduling process_list on round robin policy with time_quantum"], 0.0)
 
@@ -192,6 +197,5 @@ def main(argv):
 
 if __name__ == '__main__':
    main(sys.argv[1:])
-
 
 
