@@ -21,6 +21,7 @@ class Process:
        self.burst_time = burst_time
        self.waiting_time = 0
        self.lastSchedule_time = 0
+       self.remaining_time = burst_time
    #for printing purpose
    def __repr__(self):
        return ('[id %d : arrival_time %d,  burst_time %d]'%(self.id, self.arrive_time, self.burst_time))
@@ -66,12 +67,9 @@ def get_proc(cur_time, process_queue,proc_position,process_list):
 #Output_1 : Schedule list contains pairs of (time_stamp, proccess_id) indicating the time switching to that proccess_id
 #Output_2 : Average Waiting Time
 def RR_scheduling(process_list, time_quantum ):
-   print(process_list)
-   tot_time = 0
-
+   #print(process_list)
    tot_num_processes=len(process_list)
-   print("tot proc", tot_num_processes)
-   print("Total time is ",tot_time)
+   #print("tot proc", tot_num_processes)
    cur_time = 0
    proc_seen = set()
    completed_proc=0
@@ -79,15 +77,12 @@ def RR_scheduling(process_list, time_quantum ):
    schedule = []
    process_queue = []
    proc_position = 0
-   pos = 0
-   #while cur_time < tot_time:
    while completed_proc < tot_num_processes:
        process_queue,proc_position = get_proc(cur_time, process_queue,proc_position,process_list)
-       print("Initial Queue",process_queue)
-       #for process in process_queue:
+       #print("Initial Queue",process_queue)
        while len(process_queue) > 0:
+           # Always take the first process from the queue
            process = process_queue[0]
-           #print(process)
            # If new proc, write the proc in schedule
            if prev_proc == None:
                prev_proc = process
@@ -98,51 +93,32 @@ def RR_scheduling(process_list, time_quantum ):
 
            # Waiting time for each process
            if (process not in proc_seen):
-               print("proc ", process, "not in set")
+               #print("proc ", process, "not in set")
                proc_seen.add(process)
-               #process.last_scheduled_time = cur_time
                process.waiting_time = cur_time - process.arrive_time
            else:
-               process.waiting_time += cur_time - process.last_scheduled_time
-               #process.last_scheduled_time = cur_time
+               process.waiting_time += cur_time - process.lastSchedule_time
 
-           # Run the process for time quoantum or process burst time
-           if process.burst_time <= time_quantum:
-               cur_time += process.burst_time
-               process.last_scheduled_time = cur_time
-               '''if (process not in proc_seen):
-                   print("proc not in set")
-                   proc_seen.add(process)
-                   process.last_scheduled_time = cur_time
-                   process.waiting_time += cur_time - process.burst_time - process.arrive_time
-               else:
-                   process.waiting_time += cur_time - process.burst_time - process.last_scheduled_time
-                   process.last_scheduled_time = cur_time'''
-               process.burst_time = 0
-               print("cur_time",cur_time,"proc", process.id, " doneeeeeeeeeeeeeeeeeeeeeee after wait time ", process.waiting_time)
+           # Run the process for time quoantum or process remaining time
+           if process.remaining_time <= time_quantum:
+               cur_time += process.remaining_time
+               process.lastSchedule_time = cur_time
+               process.remaining_time = 0
+               #print("cur_time",cur_time,"proc", process.id, " doneeeeeeeeeeeeeeeeeeeeeee after wait time ", process.waiting_time)
                process_queue.remove(process)
                process_queue, proc_position = get_proc(cur_time, process_queue, proc_position, process_list)
                completed_proc += 1
                if(completed_proc == tot_num_processes):
                    break
-           elif process.burst_time > time_quantum:
+           elif process.remaining_time > time_quantum:
                cur_time += time_quantum
-               process.last_scheduled_time = cur_time
-               '''if (process not in proc_seen):
-                   print("proc ",process, "not in set")
-                   proc_seen.add(process)
-                   process.last_scheduled_time = cur_time
-                   process.waiting_time += cur_time - time_quantum - process.arrive_time
-               else:
-                   process.waiting_time += cur_time - time_quantum - process.last_scheduled_time
-                   process.last_scheduled_time = cur_time'''
-               process.burst_time -= time_quantum
-               print("cur_time",cur_time,"proc", process.id, " executed for ",time_quantum,"after wait time ", process.waiting_time)
-               #pos += 1
+               process.lastSchedule_time = cur_time
+               process.remaining_time -= time_quantum
+               #print("cur_time",cur_time,"proc", process.id, " executed for ",time_quantum,"after wait time ", process.waiting_time)
                process_queue, proc_position = get_proc(cur_time, process_queue, proc_position, process_list)
                process_queue.append(process_queue.pop(0))
        cur_time += 1
-   print(schedule)
+   #print(schedule)
 
    # Calculating avg waiting time
    tot_wait = 0
@@ -186,7 +162,9 @@ def main(argv):
    #FCFS_schedule, FCFS_avg_waiting_time =  FCFS_scheduling(process_list)
    #write_output('FCFS.txt', FCFS_schedule, FCFS_avg_waiting_time )
    print ("simulating RR ----")
+   print("proc list b4 RR",process_list)
    RR_schedule, RR_avg_waiting_time =  RR_scheduling(process_list,time_quantum = 2)
+   print("proc list after RR", process_list)
    write_output('RR.txt', RR_schedule, RR_avg_waiting_time )
    print ("simulating SRTF ----")
    SRTF_schedule, SRTF_avg_waiting_time =  SRTF_scheduling(process_list)
