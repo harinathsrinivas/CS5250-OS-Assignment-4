@@ -11,6 +11,7 @@ Output files:
 '''
 import sys
 import copy
+import math
 
 input_file = 'input.txt'
 
@@ -22,6 +23,7 @@ class Process:
        self.burst_time = burst_time
        self.waiting_time = 0
        self.lastSchedule_time = arrive_time
+       self.expected_burst_time = 0
    #for printing purpose
    def __repr__(self):
        return ('[id %d : arrival_time %d,  burst_time %d]'%(self.id, self.arrive_time, self.burst_time))
@@ -121,14 +123,12 @@ def RR_scheduling(process_list, time_quantum ):
        tot_wait += process.waiting_time
    avg_wait_time = tot_wait / tot_num_processes
    return schedule, avg_wait_time
-   #return (["to be completed, scheduling process_list on round robin policy with time_quantum"], 0.0)
 
 def SRTF_scheduling(process_list):
    process_list_copy = copy.deepcopy(process_list)
    tot_num_processes = len(process_list_copy)
    # print("tot proc", tot_num_processes)
    cur_time = 0
-   proc_seen = set()
    completed_proc = 0
    prev_proc = None
    schedule = []
@@ -169,11 +169,49 @@ def SRTF_scheduling(process_list):
        tot_wait += process.waiting_time
    avg_wait_time = tot_wait / tot_num_processes
    return schedule, avg_wait_time
-   #return (["to be completed, scheduling process_list on SRTF, using process.burst_time to calculate the remaining time of the current process "], 0.0)
+
+def find_expected_burst_time(actual_burst_time,predicted_burst_time,alpha):
+   expected_burst_time = (alpha*actual_burst_time) + ((1-alpha) * predicted_burst_time)
+   return expected_burst_time
 
 def SJF_scheduling(process_list, alpha):
-   return (["to be completed, scheduling SJF without using information from process.burst_time"],0.0)
+   cur_time = 0
+   waiting_time = 0
+   current_processing_queue = []
+   schedule = []
+   process_list_copy = copy.deepcopy(process_list)
+   initial_guess = 5
+   completed_proc = 0
+   expected_burst_time = {}
+   tot_num_processes=len(process_list)
+   for process in process_list_copy:
+       expected_burst_time[process.id] = initial_guess
+   while completed_proc < tot_num_processes:
+       while len(process_list_copy) > 0:
+           tba_process = process_list_copy[0]
+           process_arrival_time = tba_process.arrive_time
+           if process_arrival_time <= cur_time:
+               process_id = tba_process.id
+               tba_process.expected_burst_time = expected_burst_time[process_id]
+               current_processing_queue.append(tba_process)
+               process_list_copy.pop(0)
+           else:
+               break
 
+       if len(current_processing_queue) > 0:
+           current_processing_queue = sorted(current_processing_queue, key=lambda process: process.expected_burst_time)
+           current_process = current_processing_queue.pop(0)
+           waiting_time += (cur_time - current_process.lastSchedule_time)
+           completed_proc += 1  # current process done
+           schedule.append((cur_time, current_process.id))  # processing
+           cur_time += current_process.burst_time
+           expected_burst_time[current_process.id] = find_expected_burst_time(current_process.burst_time, current_process.expected_burst_time, alpha)
+       else:
+           cur_time += 1
+
+   avg_wait_time = waiting_time / tot_num_processes
+   #print(avg_wait_time)
+   return schedule, avg_wait_time
 
 def read_input():
    result = []
@@ -197,22 +235,34 @@ def main(argv):
    print ("printing input ----")
    for process in process_list:
        print (process)
-   #print ("simulating FCFS ----")
+   #print (Changed"simulating FCFS ----")
    #FCFS_schedule, FCFS_avg_waiting_time =  FCFS_scheduling(process_list)
    #write_output('FCFS.txt', FCFS_schedule, FCFS_avg_waiting_time )
    print ("simulating RR ----")
-   print("proc list b4 RR",process_list)
-   RR_schedule, RR_avg_waiting_time =  RR_scheduling(process_list,time_quantum = 2)
-   print("proc list after RR", process_list)
+   #print("proc list b4 RR",process_list)
+   min_val = None
+   min_pos = 0
+   RR_schedule, RR_avg_waiting_time = RR_scheduling(process_list, time_quantum=2)
+   # This code was used to test multiple values for quantum and find minimum avg time value
+   '''for i in range(1,1000):
+       RR_schedule, RR_avg_waiting_time =  RR_scheduling(process_list,time_quantum = i)
+       print("For ",i,"waiting time:",RR_avg_waiting_time)
+       if min_val == None:
+           min_val = RR_avg_waiting_time
+       else:
+           if RR_avg_waiting_time < min_val:
+               min_val = RR_avg_waiting_time
+               min_pos = i
+   print("the min pos and min value is ", min_pos, min_val)'''
+
+   #print("proc list after RR", process_list)
    write_output('RR.txt', RR_schedule, RR_avg_waiting_time )
    print ("simulating SRTF ----")
    SRTF_schedule, SRTF_avg_waiting_time =  SRTF_scheduling(process_list)
    write_output('SRTF.txt', SRTF_schedule, SRTF_avg_waiting_time )
    print ("simulating SJF ----")
-   SJF_schedule, SJF_avg_waiting_time =  SJF_scheduling(process_list, alpha = 0.5)
+   SJF_schedule, SJF_avg_waiting_time =  SJF_scheduling(process_list, alpha = 0.75)
    write_output('SJF.txt', SJF_schedule, SJF_avg_waiting_time )
 
 if __name__ == '__main__':
    main(sys.argv[1:])
-
-
